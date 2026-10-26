@@ -1,0 +1,103 @@
+/* Paleta «Salvia» de la app Lifeside (ui/theme/Color.kt). */
+:root {
+  --fondo: #f7faf7;            /* background */
+  --texto: #191c1a;            /* onSurface */
+  --suave: #404944;            /* onSurfaceVariant */
+  --acento: #3f6b5a;           /* primary */
+  --sobre-acento: #ffffff;     /* onPrimary */
+  --acento-suave: #cde8db;     /* primaryContainer */
+  --sobre-acento-suave: #0e2a20;
+  --tarjeta: #edf2ee;          /* surfaceContainer */
+  --linea: #dde5df;            /* surfaceVariant */
+  --borde: #707973;            /* outline */
+  --radio-chip: 12px;
+  --radio-opcion: 16px;
+  --radio-tarjeta: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #101412;
+    --texto: #e0e4e0;
+    --suave: #c0c9c2;
+    --acento: #a6d0be;
+    --sobre-acento: #0b3829;
+    --acento-suave: #274e3f;
+    --sobre-acento-suave: #c2edda;
+    --tarjeta: #1b211e;
+    --linea: #2b332f;
+    --borde: #8a938d;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: .015em;
+}
+a { color: var(--acento); text-underline-offset: .2em; }
+a:focus-visible, .boton:focus-visible {
+  outline: 3px solid var(--acento);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Cabecera */
+.cabecera { max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 0; }
+.marca {
+  display: inline-flex; align-items: center; gap: .75rem;
+  min-height: 48px; color: var(--texto); text-decoration: none;
+  font-size: 1.375rem; font-weight: 600; letter-spacing: 0;
+}
+.marca img { width: 40px; height: 40px; display: block; }
+
+main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+h1 { font-size: 1.75rem; line-height: 2.25rem; font-weight: 600; letter-spacing: 0; margin: 0 0 .75rem; }
+h2 { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; letter-spacing: 0; margin: 2.25rem 0 .75rem; }
+p, li { margin: .5rem 0; }
+ul { padding-left: 1.25rem; }
+.fecha { display: inline-block; margin: 0 0 1rem; padding: .25rem .75rem;
+  background: var(--acento-suave); color: var(--sobre-acento-suave);
+  border-radius: var(--radio-chip); font-size: .875rem; }
+.fecha strong { font-weight: 500; }
+.fecha, .pie { font-size: .875rem; }
+.pie { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--linea); color: var(--suave); }
+.pie a { display: inline-block; min-height: 48px; line-height: 48px; }
+
+/* Resumen de la política: tarjeta */
+.resumen { background: var(--tarjeta); border-radius: var(--radio-tarjeta); padding: 1rem 1.25rem; }
+.resumen h2 { margin-top: .25rem; }
+.resumen ul { margin: 0; }
+
+/* Portada */
+.hero { padding: 1.5rem 0 1rem; }
+.hero h1 { font-size: 2rem; line-height: 2.5rem; }
+.hero p { font-size: 1.125rem; color: var(--suave); margin: 0 0 1.5rem; }
+.boton {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; padding: 0 1.5rem; border-radius: var(--radio-opcion);
+  background: var(--acento); color: var(--sobre-acento);
+  font-weight: 500; text-decoration: none;
+}
+.boton:hover { filter: brightness(1.08); }
+.puntos { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; gap: .75rem; }
+.puntos li { margin: 0; background: var(--tarjeta); border-radius: var(--radio-tarjeta); padding: 1rem 1.25rem; }
+.puntos strong { display: block; font-size: 1.125rem; font-weight: 600; letter-spacing: 0; color: var(--acento); margin-bottom: .25rem; }
+
+/* Tabla: tarjetas apiladas en pantallas estrechas */
+.tabla { margin: 1rem 0; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .9375rem;
+  border: 1px solid var(--linea); border-radius: var(--radio-opcion); overflow: hidden; }
+th, td { text-align: left; vertical-align: top; padding: .75rem; border-bottom: 1px solid var(--linea); overflow-wrap: anywhere; }
+tbody tr:last-child td { border-bottom: 0; }
+th { background: var(--tarjeta); color: var(--suave); font-weight: 600; }
+@media (max-width: 40rem) {
+  table, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  tbody tr { padding: .5rem 0; border-bottom: 1px solid var(--linea); }
+  tbody tr:last-child { border-bottom: 0; }
+  td { border: 0; padding: .35rem .9rem; }
+  td::before { content: attr(data-label); display: block; font-size: .8125rem; font-weight: 600; color: var(--suave); }
+}
