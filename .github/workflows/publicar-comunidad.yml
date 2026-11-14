@@ -1,0 +1,108 @@
+# Publicación diaria de los planes de la comunidad (decisión del dueño del 14-11-2026).
+# Lee la pestaña «publicar» de la hoja (solo planes aprobados, sin contacto), firma con la clave de CI y sube
+# datos/comunidad/v1/index.json. Pasos para configurarlo: herramientas/comunidad/LEEME.md del repo de la app.
+# Reglas: ningún dato de la hoja se mete en un `run:`; cada secreto solo en el paso que lo usa; acciones por SHA.
+name: Publicar la comunidad
+
+on:
+  schedule:
+    - cron: '17 4 * * *' # cada día a las 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: 'Publicar aunque desaparezcan muchos planes de golpe (solo si es a propósito)'
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: comunidad
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: comunidad
+    permissions:
+      contents: write
+    env:
+      KID: ${{ vars.COMUNIDAD_KID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Comprobar que las herramientas son las del repo de la app
+        working-directory: herramientas
+        run: sha256sum --check --strict --quiet ORIGEN.sha256
+
+      - name: Instalar cryptography (paquete firmado de Ubuntu)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq python3-cryptography
+
+      - name: Pruebas de las herramientas
+        working-directory: herramientas
+        run: /usr/bin/python3 -m unittest -q test_publicar test_verificar
+
+      - name: Leer los planes aprobados
+        env:
+          FEED_TOKEN: ${{ secrets.FEED_TOKEN }}
+          FEED_URL: ${{ vars.FEED_URL }}
+        run: |
+          set -euo pipefail
+          case "$FEED_URL" in
+            https://script.google.com/macros/s/*/exec) ;;
+            *) echo "FEED_URL no es una URL /exec de Apps Script"; exit 1 ;;
+          esac
+          # El token va por la entrada estándar al cuerpo del POST: ni en la URL ni en la línea de órdenes.
+          # Google contesta con una redirección; curl la sigue con GET (sin el cuerpo).
+          printf 'token=%s' "$FEED_TOKEN" | curl --fail --silent --show-error --location \
+            --proto '=https' --proto-redir '=https' --max-time 60 --max-filesize 2000000 --retry 2 \
+            --data-binary @- -H 'Content-Type: application/x-www-form-urlencoded' \
+            "$FEED_URL" -o "$RUNNER_TEMP/entrada.csv"
+          esperada='"estado","id","titulo","inicio","fin","hora","lugar","municipio","provincia","categoria","gratis","precio","url","organizador","descripcion"'
+          if [ "$(head -n 1 "$RUNNER_TEMP/entrada.csv" | tr -d '\r')" != "$esperada" ]; then
+            echo "La respuesta no es la pestaña «publicar» (¿token, URL o columnas?): no se publica nada"
+            exit 1
+          fi
+
+      - name: Guardar el index.json anterior
+        run: cp datos/comunidad/v1/index.json "$RUNNER_TEMP/previo.json" 2>/dev/null || true
+
+      - name: Firmar
+        env:
+          LIFESIDE_COMUNIDAD_CLAVE: ${{ secrets.LIFESIDE_COMUNIDAD_CLAVE }}
+          FORZAR: ${{ inputs.forzar && '--forzar' || '' }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I herramientas/publicar.py "$RUNNER_TEMP/entrada.csv" datos/comunidad/v1/index.json \
+            --kid "$KID" --estricto $FORZAR | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verificar firma y formato
+        env:
+          COMUNIDAD_CLAVE_PUBLICA: ${{ vars.COMUNIDAD_CLAVE_PUBLICA }}
+        run: |
+          set -euo pipefail
+          previo=()
+          if [ -f "$RUNNER_TEMP/previo.json" ]; then previo=(--previo "$RUNNER_TEMP/previo.json"); fi
+          /usr/bin/python3 -I herramientas/verificar.py datos/comunidad/v1/index.json --kid "$KID" "${previo[@]}"
+
+      - name: Borrar la descarga
+        if: always()
+        run: rm -f "$RUNNER_TEMP/entrada.csv" "$RUNNER_TEMP/previo.json"
+
+      - name: Subir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add datos/comunidad/v1/index.json
+          git commit --quiet -m 'Comunidad: publicación diaria'
+          # El token va en una cabecera solo para este push (ni en la URL ni guardado en .git/config)
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push --quiet origin HEAD:main
