@@ -94,6 +94,14 @@ class Publicar(unittest.TestCase):
             self.assertEqual((7, {"x1", "x2"}), p.anterior(f.name))
         finally:
             os.unlink(f.name)
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump({"payload": json.dumps({"version": 3, "events": [
+                {"id": "pasado", "start": "2026-11-10", "end": "2026-11-12"}, {"id": "hoy", "start": "2026-11-13"},
+                {"id": "futuro", "start": "2026-11-10", "end": "2026-11-20"}]})}, f)
+        try:
+            self.assertEqual((3, {"hoy", "futuro"}), p.anterior(f.name, date(2026, 11, 13)))  # sin los terminados
+        finally:
+            os.unlink(f.name)
         self.assertEqual((0, set()), p.anterior("/no/existe.json"))
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
             f.write("{roto")
@@ -138,6 +146,8 @@ class Publicar(unittest.TestCase):
         self.assertIsNone(p.frenar({f"v{i}" for i in range(5)}, [{"id": "v0"}], []))  # pocos: se admite
         self.assertIn("ningún plan", p.frenar({f"v{i}" for i in range(3)}, [], []))  # pero no quedarse sin nada
         self.assertIn("ningún plan", p.frenar(set(), [], []))  # ni la primera vez sin nada
+        self.assertIsNone(p.frenar(set(), [], [], habia=True))  # terminaron todos y la hoja ya los borró: vale
+        self.assertIn("ningún plan", p.frenar(set(), [], [], habia=False))
         terminados = [(i + 2, "ya ha terminado", f"v{i}", False) for i in range(20)]
         self.assertIsNone(p.frenar(previos, [], terminados))  # los que terminan no cuentan
         mitad = [{"id": f"v{i}"} for i in range(10)]

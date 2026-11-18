@@ -1,1 +1,1 @@
-Copiado desde el commit 97f11e3 de la app (2026-11-14).
+Copiado desde el commit ebac300 de la app (2026-11-18).
