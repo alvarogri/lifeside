@@ -193,8 +193,10 @@ def seleccionar(filas, hoy: date, previos: set, dominios=None):
     return eventos, descartes
 
 
-def frenar(previos: set, eventos, descartes, forzar: bool = False):
-    """Motivo para no publicar en modo estricto, o None."""
+def frenar(previos: set, eventos, descartes, forzar: bool = False, habia: bool = None):
+    """Motivo para no publicar en modo estricto, o None. [previos]: los publicados que aún no han terminado (la hoja
+    borra la fila al día siguiente de terminar: esos no cuentan como desaparecidos); [habia]: si el anterior tenía
+    alguno, aunque ya hayan terminado todos (quedarse sin planes así es lo normal)."""
     graves = [n for n, _, _, grave in descartes if grave]
     if graves:
         return f"{len(graves)} filas aprobadas están mal (filas {', '.join(map(str, graves[:10]))})"
@@ -203,7 +205,7 @@ def frenar(previos: set, eventos, descartes, forzar: bool = False):
     if not forzar and len(desaparecidos) > max(MAX_DESAPARECIDOS, len(previos) // 2):
         return (f"desaparecen {len(desaparecidos)} de los {len(previos)} planes publicados sin haber terminado "
                 "(¿hoja vacía o cambiada?); si es a propósito, lánzalo a mano con «forzar»")
-    if not forzar and not eventos and (desaparecidos or not previos):
+    if not forzar and not eventos and (desaparecidos or not (previos if habia is None else habia)):
         return "no queda ningún plan (¿hoja vacía?); si es a propósito, lánzalo a mano con «forzar»"
     return None
 
@@ -220,12 +222,13 @@ def leer_clave(ruta):
     return Ed25519PrivateKey.from_private_bytes(base64.b64decode(b64))
 
 
-def anterior(ruta: str):
-    """(versión, ids publicados) del index.json anterior; (0, vacío) si no hay."""
+def anterior(ruta: str, hoy: date = None):
+    """(versión, ids publicados) del index.json anterior; (0, vacío) si no hay. Con [hoy], sin los ya terminados."""
     try:
         with open(ruta, encoding="utf-8") as f:
             p = json.loads(json.load(f)["payload"])
-        return int(p["version"]), {e.get("id") for e in p.get("events", []) if isinstance(e, dict)}
+        return int(p["version"]), {e.get("id") for e in p.get("events", []) if isinstance(e, dict)
+                                   and not (hoy and str(e.get("end") or e.get("start") or "9999") < hoy.isoformat())}
     except (OSError, ValueError, KeyError, TypeError):
         return 0, set()
 
@@ -243,7 +246,8 @@ def main() -> int:
     a = ap.parse_args()
     hoy = date.today()
     ruta_previa = a.version_previa or a.salida
-    version, previos = anterior(ruta_previa)
+    version, todos = anterior(ruta_previa)
+    previos = anterior(ruta_previa, hoy)[1]
     if a.estricto and version == 0 and os.path.exists(ruta_previa):
         sys.exit("El index.json anterior no se puede leer: no se publica nada")
     if version == 0:
@@ -258,7 +262,7 @@ def main() -> int:
     for n, motivo, _, _ in descartes:
         print(f"Fila {n} descartada: {motivo}", file=sys.stderr)
     if a.estricto:
-        problema = frenar(previos, eventos, descartes, a.forzar)
+        problema = frenar(previos, eventos, descartes, a.forzar, habia=bool(todos))
         if problema:
             sys.exit(problema + ": no se publica nada")
     if len(eventos) > MAX_EVENTOS:
