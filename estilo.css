@@ -82,6 +82,10 @@ ul { padding-left: 1.25rem; }
   font-weight: 500; text-decoration: none;
 }
 .boton:hover { filter: brightness(1.08); }
+/* Cierre de «Proponer»: botón + aclaración con aire */
+.accion { margin: 3rem 0 0; }
+.accion .boton { display: flex; width: 100%; max-width: 30rem; margin: 0 auto; }
+.aclaracion { margin: .75rem 0 0; font-size: .875rem; color: var(--suave); text-align: center; }
 .puntos { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; gap: .75rem; }
 .puntos li { margin: 0; background: var(--tarjeta); border-radius: var(--radio-tarjeta); padding: 1rem 1.25rem; }
 .puntos strong { display: block; font-size: 1.125rem; font-weight: 600; letter-spacing: 0; color: var(--acento); margin-bottom: .25rem; }
