@@ -7,6 +7,7 @@ name: Publicar la comunidad
 on:
   schedule:
     - cron: '17 4 * * *' # cada día a las 04:17 UTC
+    - cron: '17 16 * * *' # y a las 16:17 UTC, para que un plan aprobado por la mañana no espere al día siguiente (25-11-2026)
   workflow_dispatch:
     inputs:
       forzar:
